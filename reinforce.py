@@ -1,6 +1,8 @@
 import itertools
 import random
 import numpy as np
+import queue
+
 
 
 # Uses algorithm REINFORCE with 2 sigmoids reprensenting the policy
@@ -50,6 +52,68 @@ def update_theta(theta, alpha, states, actions, rewards):
 
 def update_alpha(start_alpha, i):
     return start_alpha /np.sqrt(1+i)
+
+
+def voisins(position, observation, game):
+    i = position[0]
+    j = position[1]
+    n = len(observation[0])
+    neighbours = []
+    
+    if i<n-1 and game[i+1][j] != 1:
+        neighbours.append(((i+1, j), 'down'))
+    if i>0 and game[i-1][j] != 1:
+        neighbours.append(((i-1, j), 'up'))
+    if j<n-1 and game[i][j+1] != 1:
+        neighbours.append(((i, j+1), 'right'))
+    if j>0 and game[i][j-1] != 1:
+        neighbours.append(((i, j-1), 'left'))
+        
+    return neighbours
+  
+def retrace(visited, pos):
+    last_move = visited[pos]
+    if last_move:
+        if last_move == 'up':
+            pos = (pos[0]+1, pos[1])
+            return retrace(visited, pos)+['up']
+        if last_move == 'down':
+            pos = (pos[0]-1, pos[1])
+            return retrace(visited, pos)+['down']      
+        if last_move == 'right':
+            pos = (pos[0], pos[1]-1)
+            return retrace(visited, pos)+['right']     
+        if last_move == 'left':
+            pos = (pos[0], pos[1]+1)
+            return retrace(visited, pos)+['left']
+    return []
+
+def transform(observation):
+    pac_position = observation[1]
+    ghost_positions = observation[2]
+    game = observation[0]
+    
+    q = queue.Queue()
+    q.put(pac_position)
+    visited = {}
+    visited[pac_position] = None
+    
+    while not q.empty():
+        current = q.get()
+
+        if game[current[0]][current[1]] == 2: #small ball
+            a =  retrace(visited, current)
+            print(a)
+            return a
+        
+        neighbours = voisins(current, observation, game)
+        
+        for nei in neighbours:
+            if not nei[0] in visited:
+                q.put(nei[0])
+                visited[nei[0]]= nei[1]
+
+
 
 
 def vectorize(observation):
